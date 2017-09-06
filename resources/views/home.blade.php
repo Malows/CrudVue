@@ -9,25 +9,9 @@
   </div>
   <div class="columns margin0 tile">
     <div class="column is-2 line-der">
-      <aside class="menu">
-        <p class="menu-label">Menu Principal</p>
-        <ul class="menu-list">
-          <li @click="menu=0" class="hand-option">
-            <a :class="{'is-active' : menu==0 }">Dashboard</a>
-          </li>
-          <li @click="menu=1" class="hand-option">
-            <a :class="{'is-active' : menu==1 }">Departamentos</a>
-          </li>
-          <li @click="menu=2" class="hand-option">
-            <a :class="{'is-active' : menu==2 }">Cargos</a>
-          </li>
-          <li @click="menu=3" class="hand-option">
-            <a :class="{'is-active' : menu==3 }">Empleados</a>
-          </li>
-        </ul>
-      </aside>
+      <menu-navigate :menu.sync="menu"></menu-navigate>
     </div>
-    <div class="column personal-content" v-if="menu==0">
+    <div class="column personal-content" v-if="menu == 0">
       <div class="columns text-center">
         <div class="column">
           <h3>Dashboard</h3>
@@ -236,17 +220,20 @@
           </div>
         </div>
         <div class="columns button-content">
-          <div class="column">
-            <a class="button is-success" @click="createDeparture()" v-if="modalDeparture==1">Aceptar</a>
-            <a class="button is-success" @click="updateDeparture()" v-if="modalDeparture==2">Aceptar</a>
-            <a class="button is-success" @click="destroyDeparture()"
-            v-if="modalDeparture==3">Aceptar</a>
-            <a class="button is-success" @click="createPosition()" v-if="modalPosition==1">Aceptar</a>
-            <a class="button is-success" @click="updatePosition()" v-if="modalPosition==2">Aceptar</a>
-            <a class="button is-success" @click="destroyPosition()" v-if="modalPosition==3">Aceptar</a>
-            <a class="button is-success" @click="createEmployee()" v-if="modalEmployee==1">Aceptar</a>
-            <a class="button is-success" @click="updateEmployee()" v-if="modalEmployee==2">Aceptar</a>
-            <a class="button is-success" @click="destroyEmployee()" v-if="modalEmployee==3">Aceptar</a>
+          <div class="column" v-if="modalDeparture">
+            <a class="button is-success" @click="createDeparture()" v-show="modalDeparture == 1">Aceptar</a>
+            <a class="button is-success" @click="updateDeparture()" v-show="modalDeparture == 2">Aceptar</a>
+            <a class="button is-success" @click="destroyDeparture()" v-show="modalDeparture == 3">Aceptar</a>
+          </div>
+          <div class="column" v-if="modalPosition">
+            <a class="button is-success" @click="createPosition()" v-show="modalPosition == 1">Aceptar</a>
+            <a class="button is-success" @click="updatePosition()" v-show="modalPosition == 2">Aceptar</a>
+            <a class="button is-success" @click="destroyPosition()" v-show="modalPosition == 3">Aceptar</a>
+          </div>
+          <div class="column" v-if="modalEmployee">
+            <a class="button is-success" @click="createEmployee()" v-show="modalEmployee == 1">Aceptar</a>
+            <a class="button is-success" @click="updateEmployee()" v-show="modalEmployee == 2">Aceptar</a>
+            <a class="button is-success" @click="destroyEmployee()" v-show="modalEmployee == 3">Aceptar</a>
           </div>
           <div class="column">
             <a class="button is-danger" @click="closeModal()">Cancelar</a>
@@ -261,7 +248,7 @@
 @endsection
 @section('script')
 <script>
-let elemento = new Vue({
+const elemento = new Vue({
   el: '.app',
   mounted () {
     this.allQuery();
@@ -295,7 +282,7 @@ let elemento = new Vue({
     filterDeparture: [],
     idFilterPosition: 0,
     filterPosition: [],
-    errorEmployee: 0,
+    // errorEmployee: 0, reactivo
     errorMessageEmployee: [],
     nowatch: 0,
   },
@@ -304,28 +291,21 @@ let elemento = new Vue({
       if (!value) this.allQuery();
     },
     idFilterDeparture (value) {
-      this.filterDeparture.map(x => {
-        if (x.id === value) {
-          this.filterPosition = x.positions;
-          if (!this.nowatch) {
-            this.idFilterPosition = this.filterPosition[0].id;
-          } else {
-            this.idFilterPosition = this.nowatch;
-          }
-        }
-      });
+      let encontrado = this.filterDeparture.find(x => x.id === value)
+      this.filterPosition = encontrado.positions || []
+      this.idFilterPosition = this.nowatch || encontrado.positions[0].id
       this.nowatch = 0;
     }
   },
   methods: {
     validateEmployee () {
-      this.errorEmployee = 0;
+      // this.errorEmployee = 0; reactivo
       this.errorMessageEmployee = [];
       if (!this.nameEmployee) this.errorMessageEmployee.push('El nombre no puede estar vacio');
       if (!this.lastnameEmployee) this.errorMessageEmployee.push("El apellido no puede estar vacio");
       if (!this.emailEmployee) this.errorMessageEmployee.push('El correo electronico no puede estar vacio');
       if (!this.birthdayEmployee) this.errorMessageEmployee.push('La fecha de nacimiento no puede estar vacia');
-      if (this.errorMessageEmployee.length) this.errorEmployee = 1;
+      // if (this.errorMessageEmployee.length) this.errorEmployee = 1; reactivo
       return this.errorEmployee;
     },
     allQuery () {
@@ -335,49 +315,43 @@ let elemento = new Vue({
         this.positions = data.positions;
         this.employee = data.employee;
       })
-      .catch(error => {
-        console.log(error);
-      });
+      .catch(error => { console.log(error) })
     },
     createEmployee () {
-      if (this.validateEmployee()) {
-        return;
+      if (this.validateEmployee()) return;
+
+      this.errorMessageEmployee = [];
+      // this.errorEmployee = 0; reactivo
+
+      const payload = {
+        name: this.nameEmployee,
+        lastname: this.lastnameEmployee,
+        email: this.emailEmployee,
+        birthday: this.birthdayEmployee,
+        position: this.idFilterPosition
       }
-      axios.post('{{route('employeecreate')}}', {
-        'name': this.nameEmployee,
-        'lastname': this.lastnameEmployee,
-        'email': this.emailEmployee,
-        'birthday': this.birthdayEmployee,
-        'position': this.idFilterPosition
-      })
+
+      axios.post('{{route('employeecreate')}}', payload)
       .then({ data } => {
-        this.errorMessageEmployee = [];
-        this.errorEmployee = 0;
+
         if (data.date) {
-          this.errorEmployee = 1;
           this.errorMessageEmployee.push(data.date[0]);
         } else {
-          this.nameEmployee = '';
-          this.lastnameEmployee = '';
-          this.emailEmployee = '';
-          this.birthdayEmployee = '';
+          this.wipeEmployeeData()
           this.idFilterPosition = 0;
-          this.errorEmployee = 0;
-          this.errorMessageEmployee = [];
           this.modalEmployee = 0;
           this.closeModal();
         }
       })
       .catch(error => {
-        this.errorMessageEmployee = [];
-        this.errorEmployee = 0;
         if (error.response && error.response.status === 500) {
           console.log(error.response.data)
         } else  if (error.response && error.response.status === 422) {
-          this.errorEmployee = 1;
-          error.response.data.email.forEach(element => {
-            this.errorMessageEmployee.push(element);
-          });
+          // this.errorEmployee = 1;
+          this.errorMessageEmployee = error.response.data.email.map(elem => elem)
+          // error.response.data.email.forEach(element => {
+          //   this.errorMessageEmployee.push(element);
+          // });
           console.clear();
         } else {
           console.log(error);
@@ -385,40 +359,37 @@ let elemento = new Vue({
       });
     },
     updateEmployee () {
-      if (this.validateEmployee()) {
-        return;
+      if (this.validateEmployee()) return;
+
+      this.errorMessageEmployee = [];
+      // this.errorEmployee = 0; reactivo
+
+      const payload = {
+        id: this.idEmployee,
+        name: this.nameEmployee,
+        lastname: this.lastnameEmployee,
+        email: this.emailEmployee,
+        birthday: this.birthdayEmployee,
+        position: this.idFilterPosition
       }
-      axios.put('{{route('employeeupdate')}}', {
-        'id': this.idEmployee,
-        'name': this.nameEmployee,
-        'lastname': this.lastnameEmployee,
-        'email': this.emailEmployee,
-        'birthday': this.birthdayEmployee,
-        'position': this.idFilterPosition
-      })
+
+      axios.put('{{route('employeeupdate')}}', payload)
       .then({ data } => {
-        this.errorMessageEmployee = [];
-        this.errorEmployee = 0;
         if (data.date) {
-          this.errorEmployee = 1;
           this.errorMessageEmployee.push(data.date[0]);
         } else {
           this.wipeEmployeeData();
           this.idFilterPosition = 0;
-          this.errorEmployee = 0;
-          this.errorMessageEmployee = [];
           this.modalEmployee = 0;
           this.closeModal();
         }
       })
       .catch(error => {
-        this.errorMessageEmployee = [];
-        this.errorEmployee = 0;
         if (error.response && error.response.status === 500) {
           console.log(error.response.data)
         } else  if (error.response && error.response.status === 422) {
-          this.errorEmployee = 1;
-          this.errorMessageEmployee = error.response.data.email;
+          // this.errorEmployee = 1; reactivo
+          this.errorMessageEmployee = error.response.data.email; // espero que sea un array, sino puede hacerse [ ...error.response.data.email]
           console.clear();
         } else {
           console.log(error);
@@ -426,29 +397,31 @@ let elemento = new Vue({
       });
     },
     destroyEmployee () {
+      this.errorMessageEmployee = [];
+      // this.errorEmployee = 0; reactivo
+      
       axios.delete('{{url('/employee/delete')}}' + '/' + this.idEmployee)
       .then(response => {
         this.wipeEmployeeData();
         this.idFilterPosition = 0;
-        this.errorEmployee = 0;
-        this.errorMessageEmployee = [];
         this.modalEmployee = 0;
         this.closeModal();
       })
-      .catch(error => {
-        console.log(error);
-      });
+      .catch(error => { console.log(error) });
     },
     updatePosition () {
       if (this.titlePosition == '') {
         this.errorTitlePosition = 1;
         return;
       }
-      axios.put('{{route('positionupdate')}}', {
-        'id': this.idPosition,
-        'title': this.titlePosition,
-        'departure': this.idDeparturePosition
-      })
+
+      const payload = {
+        id: this.idPosition,
+        title: this.titlePosition,
+        departure: this.idDeparturePosition
+      }
+
+      axios.put('{{route('positionupdate')}}', payload)
       .then(response => {
         this.titlePosition = '';
         this.errorTitlePosition = 0;
@@ -457,9 +430,7 @@ let elemento = new Vue({
         this.idPosition = 0;
         this.closeModal();
       })
-      .catch(error => {
-        console.log(error);
-      });
+      .catch(error => { console.log(error); });
     },
     destroyPosition () {
       axios.delete('{{url('/position/delete')}}' + '/' + this.idPosition)
@@ -471,19 +442,20 @@ let elemento = new Vue({
         this.idPosition = 0;
         this.closeModal();
       })
-      .catch(error => {
-        console.log(error);
-      });
+      .catch(error => { console.log(error); });
     },
     createPosition () {
       if (this.titlePosition == '') {
         this.errorTitlePosition = 1;
         return;
       }
-      axios.post('{{route('positioncreate')}}', {
-        'title': this.titlePosition,
-        'departure': this.idDeparturePosition
-      })
+
+      const payload = {
+        title: this.titlePosition,
+        departure: this.idDeparturePosition
+      }
+
+      axios.post('{{route('positioncreate')}}', payload)
       .then(response => {
         this.titlePosition = '';
         this.errorTitlePosition = 0;
@@ -491,19 +463,19 @@ let elemento = new Vue({
         this.idDeparturePosition = 0;
         this.closeModal();
       })
-      .catch(function (error) {
-        console.log(error);
-      });
+      .catch(error => { console.log(error) });
     },
     updateDeparture () {
       if (this.titleDeparture == '') {
         this.errorTitleDeparture = 1;
         return;
       }
-      axios.put('{{route('departureupdate')}}', {
-        'title': this.titleDeparture,
-        'id': this.idDeparture
-      })
+      const payload =  {
+        id: this.idDeparture,
+        title: this.titleDeparture
+      }
+
+      axios.put('{{route('departureupdate')}}', payload)
       .then(response => {
         this.titleDeparture = '';
         this.idDeparture = 0;
@@ -511,9 +483,7 @@ let elemento = new Vue({
         this.modalDeparture = 0;
         this.closeModal();
       })
-      .catch(error => {
-        console.log('error: ', error);
-      });
+      .catch(error => { console.log('error: ', error) });
     },
     closeModal () {
       this.modalGeneral = 0;
@@ -533,9 +503,7 @@ let elemento = new Vue({
         this.modalDeparture = 0;
         this.closeModal();
       })
-      .catch(error => {
-        console.log('error: ', error);
-      });
+      .catch(error => { console.log('error: ', error) });
     },
     createDeparture () {
       if (this.titleDeparture == '') {
@@ -552,9 +520,7 @@ let elemento = new Vue({
         this.modalDeparture = 0;
         this.closeModal();
       })
-      .catch(error => {
-        console.log(error);
-      });
+      .catch(error => { console.log(error) });
     },
     openModal (type, action, data = []) {
       switch (type) {
@@ -636,13 +602,9 @@ let elemento = new Vue({
               this.messageModal = 'Ingrese los datos del Empleado';
               this.modalEmployee = 1;
               this.wipeEmployeeData();
-              this.filterDeparture = [];
               this.filterPosition = [];
-              this.departures.map(x => {
-                if (x.positions.length) {
-                  if (this.filterDeparture.indexOf(x)) this.filterDeparture.push(x);
-                }
-              });
+              let departamentosFiltrados = new Set(this.departures.filter(x => x.positions.length)) // suena a un Set
+              this.filterDeparture =  [ ...departamentosFiltrados]
               if (this.filterDeparture.length) {
                 this.idFilterDeparture = this.filterDeparture[0].id;
                 this.filterPosition = this.filterDeparture[0].positions;
@@ -702,6 +664,11 @@ let elemento = new Vue({
       this.lastnameEmployee = '';
       this.emailEmployee = '';
       this.birthdayEmployee = '';
+    }
+  },
+  computed: {
+    errorEmployee () {
+      return parseBool(this.errorMessageEmployee.length)
     }
   }
 })

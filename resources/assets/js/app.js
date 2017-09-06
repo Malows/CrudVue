@@ -17,6 +17,4 @@ window.Vue = require('vue');
 
 
 Vue.component('birthdaypicker', require('./components/datepicker.vue'));
-
-
-
+Vue.component('menu-navigate', require('./components/MenuNavigate.vue'));
